@@ -1,22 +1,46 @@
 <?php
-require_once ('db.php'); //подключаем бд
+require_once('db.php');
+session_start();
 
-$login = $_POST['login'];//создаем перепенные
-$pass = $_POST['pass'];//данные вводим из формы html
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $login = trim($_POST['login']);
+    $pass = trim($_POST['pass']);
 
-if (empty($login) || empty($pass)) //проверяем на пустоту
-{
-    echo "Заполните все поля";
-} else {
-    $sql = "SELECT * FROM `users` WHERE login = '$login' AND pass = '$pass'"; //проверить на соответсвие из базы данных
-    $result = $conn->query($sql);
-
-    if ($result->num_rows > 0) //проверяем если получит больше 0 строк тогда выводим все данные
-   {
-    while ($row = $result->fetch_assoc()){
-        echo "Добро пожаловать ". $row['login']; // получаем доступ
+    // Проверяем, заполнены ли все поля
+    if (empty($login) || empty($pass)) {
+        die("Заполните все поля");
     }
-   } else {
-        echo "Нет такого пользователя"; // если нет совпадений то не заходит
-   }
+
+    // Получаем данные пользователя из базы
+    $sql = "SELECT * FROM users WHERE login = :login";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute(['login' => $login]);
+    $user = $stmt->fetch();
+
+    // Проверяем пароль
+    if ($user && password_verify($pass, $user['pass'])) {
+        $_SESSION['user'] = $user['login'];
+        header("Location: feedback.php"); // Перенаправляем на форму обратной связи
+        exit();
+    } else {
+        echo "Неверный логин или пароль";
+    }
 }
+?>
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход</title>
+</head>
+<body>
+    <h2>Вход</h2>
+    <form action="" method="post">
+        <input type="text" name="login" placeholder="Логин" required>
+        <input type="password" name="pass" placeholder="Пароль" required>
+        <button type="submit">Войти</button>
+    </form>
+    <a href="register.php">Зарегистрироваться</a>
+</body>
+</html>
